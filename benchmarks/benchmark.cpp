@@ -1,19 +1,20 @@
-#include "code.hpp"
-#include "config.hpp"
-#include "feedback.hpp"
-#include "solver.hpp"
-#include "strategy.hpp"
+#include <getopt.h>
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <getopt.h>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <numeric>
 #include <string>
 #include <vector>
+
+#include "code.hpp"
+#include "config.hpp"
+#include "feedback.hpp"
+#include "solver.hpp"
+#include "strategy.hpp"
 
 struct BenchmarkResult {
     std::string strategy_name;
@@ -25,10 +26,8 @@ struct BenchmarkResult {
     double elapsed_ms;
 };
 
-BenchmarkResult run_benchmark(const GameConfig& cfg,
-                               const FeedbackTable& fb_table,
-                               Strategy& strategy,
-                               bool verbose) {
+BenchmarkResult run_benchmark(const GameConfig& cfg, const FeedbackTable& fb_table,
+                              Strategy& strategy, bool verbose) {
     auto all_codes = enumerate_all_codes(cfg);
     Solver solver(cfg, fb_table, strategy);
 
@@ -42,15 +41,14 @@ BenchmarkResult run_benchmark(const GameConfig& cfg,
         turn_counts.push_back(result.turns);
 
         if (verbose && (i + 1) % 1000 == 0)
-            std::cout << "  " << strategy.name() << ": " << (i + 1)
-                      << "/" << cfg.total_codes << " secrets done\n";
+            std::cout << "  " << strategy.name() << ": " << (i + 1) << "/" << cfg.total_codes
+                      << " secrets done\n";
     }
 
     auto t1 = std::chrono::high_resolution_clock::now();
     double elapsed = std::chrono::duration<double, std::milli>(t1 - t0).count();
 
-    double mean = static_cast<double>(
-                      std::accumulate(turn_counts.begin(), turn_counts.end(), 0)) /
+    double mean = static_cast<double>(std::accumulate(turn_counts.begin(), turn_counts.end(), 0)) /
                   turn_counts.size();
 
     double variance = 0.0;
@@ -78,26 +76,17 @@ void print_results(const std::vector<BenchmarkResult>& results, const GameConfig
     std::cout << "\n=== Benchmark Results: " << cfg.description() << " ===\n\n";
 
     // Summary table
-    std::cout << std::left
-              << std::setw(10) << "Strategy"
-              << std::right
-              << std::setw(8) << "Mean"
-              << std::setw(8) << "StdDev"
-              << std::setw(6) << "Min"
-              << std::setw(6) << "Max"
+    std::cout << std::left << std::setw(10) << "Strategy" << std::right << std::setw(8) << "Mean"
+              << std::setw(8) << "StdDev" << std::setw(6) << "Min" << std::setw(6) << "Max"
               << std::setw(10) << "Time(ms)"
               << "\n";
     std::cout << std::string(48, '-') << "\n";
 
     for (const auto& r : results) {
-        std::cout << std::left  << std::setw(10) << r.strategy_name
-                  << std::right << std::fixed << std::setprecision(3)
-                  << std::setw(8) << r.mean_turns
-                  << std::setw(8) << r.stddev_turns
-                  << std::setw(6) << r.min_turns
-                  << std::setw(6) << r.max_turns
-                  << std::setw(10) << static_cast<int>(r.elapsed_ms)
-                  << "\n";
+        std::cout << std::left << std::setw(10) << r.strategy_name << std::right << std::fixed
+                  << std::setprecision(3) << std::setw(8) << r.mean_turns << std::setw(8)
+                  << r.stddev_turns << std::setw(6) << r.min_turns << std::setw(6) << r.max_turns
+                  << std::setw(10) << static_cast<int>(r.elapsed_ms) << "\n";
     }
 
     // Distribution table
@@ -109,7 +98,8 @@ void print_results(const std::vector<BenchmarkResult>& results, const GameConfig
 
     int max_turns = 0;
     for (const auto& r : results)
-        if (r.max_turns > max_turns) max_turns = r.max_turns;
+        if (r.max_turns > max_turns)
+            max_turns = r.max_turns;
 
     for (int t = 1; t <= max_turns; ++t) {
         std::cout << std::left << std::setw(10) << t;
@@ -139,34 +129,43 @@ int main(int argc, char* argv[]) {
     std::string which_strategy = "all";
     bool verbose = false;
 
-    static const option long_opts[] = {
-        {"colors",    required_argument, nullptr, 'c'},
-        {"positions", required_argument, nullptr, 'p'},
-        {"strategy",  required_argument, nullptr, 's'},
-        {"verbose",   no_argument,       nullptr, 'v'},
-        {"help",      no_argument,       nullptr, 'h'},
-        {nullptr, 0, nullptr, 0}
-    };
+    static const option long_opts[] = {{"colors", required_argument, nullptr, 'c'},
+                                       {"positions", required_argument, nullptr, 'p'},
+                                       {"strategy", required_argument, nullptr, 's'},
+                                       {"verbose", no_argument, nullptr, 'v'},
+                                       {"help", no_argument, nullptr, 'h'},
+                                       {nullptr, 0, nullptr, 0}};
 
     int opt;
     while ((opt = getopt_long(argc, argv, "c:p:s:vh", long_opts, nullptr)) != -1) {
         switch (opt) {
-        case 'c': colors    = static_cast<uint32_t>(std::stoul(optarg)); break;
-        case 'p': positions = static_cast<uint32_t>(std::stoul(optarg)); break;
-        case 's': which_strategy = optarg; break;
-        case 'v': verbose = true; break;
-        case 'h': print_usage(argv[0]); return 0;
-        default:  print_usage(argv[0]); return 1;
+            case 'c':
+                colors = static_cast<uint32_t>(std::stoul(optarg));
+                break;
+            case 'p':
+                positions = static_cast<uint32_t>(std::stoul(optarg));
+                break;
+            case 's':
+                which_strategy = optarg;
+                break;
+            case 'v':
+                verbose = true;
+                break;
+            case 'h':
+                print_usage(argv[0]);
+                return 0;
+            default:
+                print_usage(argv[0]);
+                return 1;
         }
     }
 
     GameConfig cfg(colors, positions);
-    std::cout << "Mastermind Benchmark\n"
-              << cfg.description() << "\n";
+    std::cout << "Mastermind Benchmark\n" << cfg.description() << "\n";
 
     if (cfg.use_precomputed_table())
-        std::cout << "Building feedback table (" << cfg.total_codes << "x"
-                  << cfg.total_codes << ")...\n";
+        std::cout << "Building feedback table (" << cfg.total_codes << "x" << cfg.total_codes
+                  << ")...\n";
     else
         std::cout << "Large search space — using on-the-fly feedback computation.\n";
 
@@ -183,8 +182,7 @@ int main(int argc, char* argv[]) {
         auto strategy = make_strategy(sname, cfg);
         std::cout << "\nRunning " << sname << " strategy...\n";
         results.push_back(run_benchmark(cfg, fb_table, *strategy, verbose));
-        std::cout << "  Done in " << static_cast<int>(results.back().elapsed_ms)
-                  << " ms\n";
+        std::cout << "  Done in " << static_cast<int>(results.back().elapsed_ms) << " ms\n";
     }
 
     print_results(results, cfg);

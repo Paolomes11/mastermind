@@ -1,8 +1,9 @@
 #pragma once
-#include "code.hpp"
-#include "config.hpp"
 #include <cstdint>
 #include <vector>
+
+#include "code.hpp"
+#include "config.hpp"
 
 // Feedback packed as: blacks * (positions + 2) + whites.
 // Injective for valid (blacks, whites) pairs; max value = P*(P+2) <= 48 for P<=6.
@@ -12,8 +13,7 @@ inline Feedback pack_feedback(uint8_t blacks, uint8_t whites, const GameConfig& 
     return static_cast<Feedback>(blacks * (cfg.positions + 2) + whites);
 }
 
-inline void unpack_feedback(Feedback fb, const GameConfig& cfg,
-                             uint8_t& blacks, uint8_t& whites) {
+inline void unpack_feedback(Feedback fb, const GameConfig& cfg, uint8_t& blacks, uint8_t& whites) {
     auto stride = static_cast<uint8_t>(cfg.positions + 2);
     blacks = fb / stride;
     whites = fb % stride;
@@ -39,7 +39,7 @@ public:
 private:
     const GameConfig& cfg_;
     bool precomputed_;
-    std::vector<uint8_t> table_; // row-major: table_[guess * N + secret]
+    std::vector<uint8_t> table_;  // row-major: table_[guess * N + secret]
 
     void build_table();
 };

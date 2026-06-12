@@ -32,11 +32,13 @@ std::string code_to_string(Code code, const GameConfig& cfg) {
 }
 
 bool string_to_code(const std::string& s, const GameConfig& cfg, Code& out) {
-    if (s.size() != cfg.positions) return false;
+    if (s.size() != cfg.positions)
+        return false;
     std::vector<uint8_t> digits(cfg.positions);
     for (uint32_t i = 0; i < cfg.positions; ++i) {
         char ch = s[i];
-        if (ch < '1' || ch > static_cast<char>('0' + cfg.colors)) return false;
+        if (ch < '1' || ch > static_cast<char>('0' + cfg.colors))
+            return false;
         // s[0] is most-significant position (p = positions-1)
         digits[cfg.positions - 1 - i] = static_cast<uint8_t>(ch - '1');
     }

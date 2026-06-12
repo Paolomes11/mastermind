@@ -1,4 +1,5 @@
 #include "feedback.hpp"
+
 #include <algorithm>
 #include <array>
 #include <iostream>
@@ -22,8 +23,7 @@ Feedback compute_feedback(Code guess, Code secret, const GameConfig& cfg) {
     for (uint32_t c = 0; c < cfg.colors; ++c)
         whites += std::min(freq_g[c], freq_s[c]);
 
-    return pack_feedback(static_cast<uint8_t>(blacks),
-                         static_cast<uint8_t>(whites), cfg);
+    return pack_feedback(static_cast<uint8_t>(blacks), static_cast<uint8_t>(whites), cfg);
 }
 
 FeedbackTable::FeedbackTable(const GameConfig& cfg) : cfg_(cfg), precomputed_(false) {

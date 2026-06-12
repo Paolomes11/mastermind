@@ -1,14 +1,12 @@
 #include "app_state.hpp"
+
 #include <algorithm>
 #include <stdexcept>
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-static std::vector<Code> filter_candidates(
-    const std::vector<Code>& candidates,
-    Code guess, Feedback fb,
-    const FeedbackTable& table)
-{
+static std::vector<Code> filter_candidates(const std::vector<Code>& candidates, Code guess,
+                                           Feedback fb, const FeedbackTable& table) {
     std::vector<Code> out;
     out.reserve(candidates.size());
     for (Code c : candidates)
@@ -25,7 +23,7 @@ void AppState::reset() {
         score_future.get();
     computing = false;
 
-    cfg      = std::make_unique<GameConfig>(colors_ui, positions_ui);
+    cfg = std::make_unique<GameConfig>(colors_ui, positions_ui);
     fb_table = std::make_unique<FeedbackTable>(*cfg);
     strategy = make_strategy(kStrategyNames[strategy_idx], *cfg);
     all_codes = enumerate_all_codes(*cfg);
@@ -59,22 +57,20 @@ void AppState::launch_scoring() {
     computing = true;
 
     // Copy by value so the async lambda doesn't dangle if reset() is called
-    auto all   = all_codes;
-    auto cand  = candidates;
+    auto all = all_codes;
+    auto cand = candidates;
     GameConfig cfg_copy = *cfg;
-    int  turn  = static_cast<int>(history.size());
+    int turn = static_cast<int>(history.size());
 
     // fb_table is captured by reference — safe because reset() calls
     // score_future.get() before destroying fb_table.
-    score_future = std::async(std::launch::async,
-        [all, cand, cfg_copy, &fb = *fb_table, &strat = *strategy, turn]()
-        -> ScoringResult {
+    score_future = std::async(
+        std::launch::async,
+        [all, cand, cfg_copy, &fb = *fb_table, &strat = *strategy, turn]() -> ScoringResult {
             ScoringResult r;
             // Always compute both entropy and minimax scores for visualization
-            r.entropy_scores =
-                make_entropy_strategy(cfg_copy)->score_candidates(all, cand, fb, 10);
-            r.minimax_scores =
-                make_minimax_strategy(cfg_copy)->score_candidates(all, cand, fb, 10);
+            r.entropy_scores = make_entropy_strategy(cfg_copy)->score_candidates(all, cand, fb, 10);
+            r.minimax_scores = make_minimax_strategy(cfg_copy)->score_candidates(all, cand, fb, 10);
             r.chosen_guess = strat.choose_guess(all, cand, fb, turn);
             return r;
         });
@@ -83,16 +79,17 @@ void AppState::launch_scoring() {
 // ── AppState::poll_scoring ────────────────────────────────────────────────────
 
 void AppState::poll_scoring(double current_time_s) {
-    if (!computing || !score_future.valid()) return;
+    if (!computing || !score_future.valid())
+        return;
 
     if (score_future.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
         return;
 
     ScoringResult r = score_future.get();
     computing = false;
-    chart_entropy  = std::move(r.entropy_scores);
-    chart_minimax  = std::move(r.minimax_scores);
-    pending_guess  = r.chosen_guess;
+    chart_entropy = std::move(r.entropy_scores);
+    chart_minimax = std::move(r.minimax_scores);
+    pending_guess = r.chosen_guess;
 
     if (mode == AppMode::Guided) {
         phase = SolvePhase::AwaitingFeedback;
@@ -125,8 +122,7 @@ bool AppState::apply_feedback(uint8_t blacks, uint8_t whites) {
     Feedback fb = pack_feedback(blacks, whites, *cfg);
 
     candidates_per_turn.push_back(static_cast<int>(candidates.size()));
-    history.push_back({pending_guess, blacks, whites,
-                       static_cast<int>(candidates.size())});
+    history.push_back({pending_guess, blacks, whites, static_cast<int>(candidates.size())});
 
     Feedback win = winning_feedback(*cfg);
     if (fb == win) {
@@ -149,8 +145,10 @@ bool AppState::apply_feedback(uint8_t blacks, uint8_t whites) {
 // ── AppState::step_auto_solve ─────────────────────────────────────────────────
 
 void AppState::step_auto_solve(double current_time_s) {
-    if (!secret.has_value()) return;
-    if (phase != SolvePhase::AutoPaused && phase != SolvePhase::AutoPlaying) return;
+    if (!secret.has_value())
+        return;
+    if (phase != SolvePhase::AutoPaused && phase != SolvePhase::AutoPlaying)
+        return;
 
     Feedback fb = fb_table->get(pending_guess, *secret);
     uint8_t blacks, whites;

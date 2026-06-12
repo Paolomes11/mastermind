@@ -1,18 +1,17 @@
 #include "solver.hpp"
-#include "code.hpp"
+
 #include <algorithm>
 
-Solver::Solver(const GameConfig& cfg, const FeedbackTable& fb_table, Strategy& strategy)
-    : cfg_(cfg), fb_table_(fb_table), strategy_(strategy),
-      all_codes_(enumerate_all_codes(cfg)) {}
+#include "code.hpp"
 
-void Solver::filter_candidates(std::vector<Code>& candidates,
-                                Code guess, Feedback fb,
-                                const FeedbackTable& fb_table) {
-    candidates.erase(
-        std::remove_if(candidates.begin(), candidates.end(),
-            [&](Code c) { return fb_table.get(guess, c) != fb; }),
-        candidates.end());
+Solver::Solver(const GameConfig& cfg, const FeedbackTable& fb_table, Strategy& strategy)
+    : cfg_(cfg), fb_table_(fb_table), strategy_(strategy), all_codes_(enumerate_all_codes(cfg)) {}
+
+void Solver::filter_candidates(std::vector<Code>& candidates, Code guess, Feedback fb,
+                               const FeedbackTable& fb_table) {
+    candidates.erase(std::remove_if(candidates.begin(), candidates.end(),
+                                    [&](Code c) { return fb_table.get(guess, c) != fb; }),
+                     candidates.end());
 }
 
 SolveResult Solver::run(FeedbackOracle oracle) const {
@@ -38,7 +37,8 @@ SolveResult Solver::run(FeedbackOracle oracle) const {
         }
 
         filter_candidates(candidates, guess, fb, fb_table_);
-        if (candidates.empty()) return result;
+        if (candidates.empty())
+            return result;
     }
 
     return result;

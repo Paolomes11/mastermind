@@ -1,5 +1,6 @@
-#include "strategy.hpp"
 #include <random>
+
+#include "strategy.hpp"
 
 namespace {
 
@@ -11,16 +12,14 @@ public:
 
     std::string name() const override { return "random"; }
 
-    Code choose_guess(const std::vector<Code>&,
-                      const std::vector<Code>& candidates,
-                      const FeedbackTable&,
-                      int) const override {
+    Code choose_guess(const std::vector<Code>&, const std::vector<Code>& candidates,
+                      const FeedbackTable&, int) const override {
         std::uniform_int_distribution<size_t> dist(0, candidates.size() - 1);
         return candidates[dist(rng_)];
     }
 };
 
-} // namespace
+}  // namespace
 
 std::unique_ptr<Strategy> make_random_strategy(const GameConfig& cfg) {
     return std::make_unique<StrategyRandom>(cfg);

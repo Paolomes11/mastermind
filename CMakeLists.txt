@@ -10,10 +10,12 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Per-config compile options
+option(ENABLE_NATIVE_ARCH "Enable -march=native optimisation (disable for CI/cross-compilation)" ON)
+
 add_compile_options(
     -Wall -Wextra -Wpedantic
     $<$<CONFIG:Release>:-O3>
-    $<$<CONFIG:Release>:-march=native>
+    $<$<AND:$<CONFIG:Release>,$<BOOL:${ENABLE_NATIVE_ARCH}>>:-march=native>
     $<$<CONFIG:Debug>:-O0>
     $<$<CONFIG:Debug>:-g>
     $<$<CONFIG:Debug>:-fsanitize=address,undefined>
@@ -56,4 +58,10 @@ endif()
 option(BUILD_GUI "Build Dear ImGui interactive GUI" ON)
 if(BUILD_GUI)
     add_subdirectory(gui)
+endif()
+
+option(BUILD_TESTS "Build the test suite" OFF)
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
 endif()

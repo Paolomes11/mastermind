@@ -1,7 +1,8 @@
-#include "strategy.hpp"
 #include <algorithm>
 #include <cmath>
 #include <vector>
+
+#include "strategy.hpp"
 
 namespace {
 
@@ -15,12 +16,12 @@ public:
 
     bool lower_score_is_better() const override { return false; }
 
-    std::vector<ScoredGuess> score_candidates(
-        const std::vector<Code>& all_codes,
-        const std::vector<Code>& candidates,
-        const FeedbackTable& fb_table,
-        int top_n) const override {
-        if (candidates.size() <= 1) return {};
+    std::vector<ScoredGuess> score_candidates(const std::vector<Code>& all_codes,
+                                              const std::vector<Code>& candidates,
+                                              const FeedbackTable& fb_table,
+                                              int top_n) const override {
+        if (candidates.size() <= 1)
+            return {};
         const auto& search_set = fb_table.is_precomputed() ? all_codes : candidates;
         auto N_cand = static_cast<uint32_t>(candidates.size());
         uint32_t counts[64];
@@ -40,26 +41,25 @@ public:
             scores.emplace_back(guess, H);
         }
         int n = std::min(top_n, static_cast<int>(scores.size()));
-        std::partial_sort(scores.begin(), scores.begin() + n, scores.end(),
-            [](const ScoredGuess& a, const ScoredGuess& b) {
-                return a.second > b.second;
-            });
+        std::partial_sort(
+            scores.begin(), scores.begin() + n, scores.end(),
+            [](const ScoredGuess& a, const ScoredGuess& b) { return a.second > b.second; });
         scores.resize(n);
         return scores;
     }
 
-    Code choose_guess(const std::vector<Code>& all_codes,
-                      const std::vector<Code>& candidates,
-                      const FeedbackTable& fb_table,
-                      int) const override {
-        if (candidates.size() <= 2) return candidates[0];
+    Code choose_guess(const std::vector<Code>& all_codes, const std::vector<Code>& candidates,
+                      const FeedbackTable& fb_table, int) const override {
+        if (candidates.size() <= 2)
+            return candidates[0];
 
         const auto& search_set = fb_table.is_precomputed() ? all_codes : candidates;
         auto N_cand = static_cast<uint32_t>(candidates.size());
 
         // O(1) candidate lookup for tiebreaking.
         std::vector<bool> is_cand(cfg_.total_codes, false);
-        for (Code c : candidates) is_cand[c] = true;
+        for (Code c : candidates)
+            is_cand[c] = true;
 
         Code best_guess = candidates[0];
         double best_entropy = -1.0;
@@ -83,8 +83,7 @@ public:
             }
 
             bool this_is_cand = is_cand[guess];
-            if (H > best_entropy ||
-                (H == best_entropy && this_is_cand && !best_is_cand)) {
+            if (H > best_entropy || (H == best_entropy && this_is_cand && !best_is_cand)) {
                 best_entropy = H;
                 best_guess = guess;
                 best_is_cand = this_is_cand;
@@ -95,7 +94,7 @@ public:
     }
 };
 
-} // namespace
+}  // namespace
 
 std::unique_ptr<Strategy> make_entropy_strategy(const GameConfig& cfg) {
     return std::make_unique<StrategyEntropy>(cfg);

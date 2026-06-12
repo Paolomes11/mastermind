@@ -1,0 +1,47 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest an improvement!
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What limitation or missing functionality prompted this request?
+      placeholder: "Currently there is no way to..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe your ideal implementation or behaviour.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any other approaches you thought about and why you prefer the proposed one.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Solver / strategy
+        - CLI
+        - GUI
+        - Benchmarks / performance
+        - Build system
+        - Documentation
+        - Other
+    validations:
+      required: true

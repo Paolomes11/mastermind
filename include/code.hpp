@@ -1,8 +1,9 @@
 #pragma once
-#include "config.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
+
+#include "config.hpp"
 
 using Code = uint32_t;
 

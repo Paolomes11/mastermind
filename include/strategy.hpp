@@ -1,11 +1,12 @@
 #pragma once
-#include "code.hpp"
-#include "config.hpp"
-#include "feedback.hpp"
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "code.hpp"
+#include "config.hpp"
+#include "feedback.hpp"
 
 // (code, score) pair for visualization. Score semantics are strategy-defined:
 //   entropy  → higher is better
@@ -22,17 +23,15 @@ public:
     // candidates: current set of possible secrets.
     // turn: 0-indexed turn number.
     virtual Code choose_guess(const std::vector<Code>& all_codes,
-                              const std::vector<Code>& candidates,
-                              const FeedbackTable& fb_table,
+                              const std::vector<Code>& candidates, const FeedbackTable& fb_table,
                               int turn) const = 0;
 
     // Returns up to top_n (code, score) pairs sorted by descending score.
     // Default implementation returns {} (random strategy has no meaningful scores).
-    virtual std::vector<ScoredGuess> score_candidates(
-        const std::vector<Code>& all_codes,
-        const std::vector<Code>& candidates,
-        const FeedbackTable& fb_table,
-        int top_n = 10) const;
+    virtual std::vector<ScoredGuess> score_candidates(const std::vector<Code>& all_codes,
+                                                      const std::vector<Code>& candidates,
+                                                      const FeedbackTable& fb_table,
+                                                      int top_n = 10) const;
 
     // True if a lower score is better (minimax), false if higher is better (entropy).
     virtual bool lower_score_is_better() const { return false; }

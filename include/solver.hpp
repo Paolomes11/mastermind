@@ -1,10 +1,11 @@
 #pragma once
+#include <functional>
+#include <vector>
+
 #include "code.hpp"
 #include "config.hpp"
 #include "feedback.hpp"
 #include "strategy.hpp"
-#include <functional>
-#include <vector>
 
 struct SolveResult {
     Code secret;
@@ -35,8 +36,6 @@ private:
 
     SolveResult run(FeedbackOracle oracle) const;
 
-    static void filter_candidates(std::vector<Code>& candidates,
-                                  Code guess,
-                                  Feedback fb,
+    static void filter_candidates(std::vector<Code>& candidates, Code guess, Feedback fb,
                                   const FeedbackTable& fb_table);
 };

@@ -1,7 +1,4 @@
 #include "render.hpp"
-#include "colors.hpp"
-#include "code.hpp"
-#include "feedback.hpp"
 
 #include <imgui.h>
 #include <implot.h>
@@ -12,30 +9,36 @@
 #include <string>
 #include <vector>
 
+#include "code.hpp"
+#include "colors.hpp"
+#include "feedback.hpp"
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 static void draw_peg(ImDrawList* dl, ImVec2 center, float radius, ImVec4 color) {
-    ImU32 fill  = to_u32(color);
-    ImU32 rim   = IM_COL32(255, 255, 255, 45);
+    ImU32 fill = to_u32(color);
+    ImU32 rim = IM_COL32(255, 255, 255, 45);
     dl->AddCircleFilled(center, radius, fill, 32);
     dl->AddCircle(center, radius, rim, 32, 1.5f);
 }
 
-static void draw_feedback_dots(ImDrawList* dl, ImVec2 top_left,
-                                float dot_r, float gap,
-                                int blacks, int whites, int positions) {
+static void draw_feedback_dots(ImDrawList* dl, ImVec2 top_left, float dot_r, float gap, int blacks,
+                               int whites, int positions) {
     // Layout: dots in a small grid (ceil(sqrt(positions)) columns)
     int cols = (positions <= 4) ? 2 : (int)std::ceil(std::sqrt((double)positions));
-    int idx  = 0;
+    int idx = 0;
     for (int p = 0; p < positions; ++p) {
         int row = idx / cols;
         int col = idx % cols;
         ImVec2 c = {top_left.x + col * (dot_r * 2 + gap) + dot_r,
                     top_left.y + row * (dot_r * 2 + gap) + dot_r};
         ImVec4 color;
-        if (p < blacks)          color = DOT_BLACK;
-        else if (p < blacks + whites) color = DOT_WHITE;
-        else                     color = DOT_EMPTY;
+        if (p < blacks)
+            color = DOT_BLACK;
+        else if (p < blacks + whites)
+            color = DOT_WHITE;
+        else
+            color = DOT_EMPTY;
         dl->AddCircleFilled(c, dot_r, to_u32(color), 16);
         ++idx;
     }
@@ -44,16 +47,16 @@ static void draw_feedback_dots(ImDrawList* dl, ImVec2 top_left,
 // ── Top bar ───────────────────────────────────────────────────────────────────
 
 static void render_top_bar(AppState& state) {
-    if (!ImGui::BeginMainMenuBar()) return;
+    if (!ImGui::BeginMainMenuBar())
+        return;
 
-    bool game_active = (state.phase != SolvePhase::Idle &&
-                        state.phase != SolvePhase::Solved &&
+    bool game_active = (state.phase != SolvePhase::Idle && state.phase != SolvePhase::Solved &&
                         state.phase != SolvePhase::Failed);
 
     ImGui::PushItemWidth(110.f);
 
     ImGui::BeginDisabled(game_active);
-    ImGui::SliderInt("Colors##cfg",    &state.colors_ui,    2, 8);
+    ImGui::SliderInt("Colors##cfg", &state.colors_ui, 2, 8);
     ImGui::SliderInt("Positions##cfg", &state.positions_ui, 2, 6);
 
     const char* strat_items[] = {"Entropy", "Minimax", "Random"};
@@ -65,20 +68,28 @@ static void render_top_bar(AppState& state) {
     ImGui::Separator();
 
     // Mode toggle
-    bool guided    = (state.mode == AppMode::Guided);
+    bool guided = (state.mode == AppMode::Guided);
     bool autosolve = (state.mode == AppMode::AutoSolve);
-    if (ImGui::RadioButton("Guided##mode",    guided))    { if (!guided)    state.set_mode(AppMode::Guided); }
-    if (ImGui::RadioButton("Auto-Solve##mode", autosolve)) { if (!autosolve) state.set_mode(AppMode::AutoSolve); }
+    if (ImGui::RadioButton("Guided##mode", guided)) {
+        if (!guided)
+            state.set_mode(AppMode::Guided);
+    }
+    if (ImGui::RadioButton("Auto-Solve##mode", autosolve)) {
+        if (!autosolve)
+            state.set_mode(AppMode::AutoSolve);
+    }
 
     ImGui::Separator();
 
-    if (ImGui::Button("New Game")) state.reset();
+    if (ImGui::Button("New Game"))
+        state.reset();
 
     ImGui::Separator();
 
     // Fullscreen toggle button — F11 also works
     const char* fs_label = state.is_fullscreen ? "[x] Fullscreen  F11" : "[ ] Fullscreen  F11";
-    if (ImGui::Button(fs_label)) state.request_fullscreen_toggle = true;
+    if (ImGui::Button(fs_label))
+        state.request_fullscreen_toggle = true;
 
     // Status indicator
     ImGui::Separator();
@@ -87,13 +98,14 @@ static void render_top_bar(AppState& state) {
         const char* spin = "|/-\\";
         ImGui::TextColored({0.9f, 0.7f, 0.2f, 1.f}, "Computing... %c", spin[(int)(t * 6) % 4]);
     } else if (state.phase == SolvePhase::Solved) {
-        ImGui::TextColored({0.2f, 0.9f, 0.3f, 1.f}, "Solved in %d turns!", (int)state.history.size());
+        ImGui::TextColored({0.2f, 0.9f, 0.3f, 1.f}, "Solved in %d turns!",
+                           (int)state.history.size());
     } else if (state.phase == SolvePhase::Failed) {
-        ImGui::TextColored({0.9f, 0.2f, 0.2f, 1.f}, "Failed after %d turns", (int)state.history.size());
+        ImGui::TextColored({0.9f, 0.2f, 0.2f, 1.f}, "Failed after %d turns",
+                           (int)state.history.size());
     } else if (state.phase != SolvePhase::Idle) {
-        ImGui::TextDisabled("Turn %d  |  %d candidates",
-            (int)state.history.size() + 1,
-            (int)state.candidates.size());
+        ImGui::TextDisabled("Turn %d  |  %d candidates", (int)state.history.size() + 1,
+                            (int)state.candidates.size());
     }
 
     ImGui::EndMainMenuBar();
@@ -102,17 +114,18 @@ static void render_top_bar(AppState& state) {
 // ── Board panel ───────────────────────────────────────────────────────────────
 
 static void render_board(AppState& state) {
-    if (!state.cfg) return;
+    if (!state.cfg)
+        return;
 
     int positions = state.cfg->positions;
-    float peg_r   = 14.0f;
-    float peg_gap  = 5.0f;
-    float row_h    = peg_r * 2.0f + peg_gap + 4.0f;
-    float dot_r    = 5.0f;
-    float dot_gap  = 2.0f;
+    float peg_r = 14.0f;
+    float peg_gap = 5.0f;
+    float row_h = peg_r * 2.0f + peg_gap + 4.0f;
+    float dot_r = 5.0f;
+    float dot_gap = 2.0f;
 
     // Estimate dot area width
-    int dot_cols  = (positions <= 4) ? 2 : (int)std::ceil(std::sqrt((double)positions));
+    int dot_cols = (positions <= 4) ? 2 : (int)std::ceil(std::sqrt((double)positions));
     float dot_area_w = dot_cols * (dot_r * 2 + dot_gap) + 4.0f;
     float row_w = positions * (peg_r * 2 + peg_gap) + dot_area_w + peg_gap * 2;
 
@@ -135,19 +148,19 @@ static void render_board(AppState& state) {
 
         // Peg circles
         for (int p = 0; p < positions; ++p) {
-            uint8_t digit = static_cast<uint8_t>((rec.guess / state.cfg->pow_c[p]) % state.cfg->colors);
-            ImVec2 center = {
-                cursor.x + peg_gap + p * (peg_r * 2 + peg_gap) + peg_r,
-                cursor.y + row_h * 0.5f
-            };
+            uint8_t digit =
+                static_cast<uint8_t>((rec.guess / state.cfg->pow_c[p]) % state.cfg->colors);
+            ImVec2 center = {cursor.x + peg_gap + p * (peg_r * 2 + peg_gap) + peg_r,
+                             cursor.y + row_h * 0.5f};
             draw_peg(dl, center, peg_r, peg_color(digit));
         }
 
         // Feedback dots
         float dots_x = cursor.x + peg_gap + positions * (peg_r * 2 + peg_gap) + peg_gap;
-        float dots_y = cursor.y + (row_h - ((int)std::ceil((double)positions / dot_cols)) * (dot_r * 2 + dot_gap)) * 0.5f;
-        draw_feedback_dots(dl, {dots_x, dots_y}, dot_r, dot_gap,
-                           rec.blacks, rec.whites, positions);
+        float dots_y =
+            cursor.y +
+            (row_h - ((int)std::ceil((double)positions / dot_cols)) * (dot_r * 2 + dot_gap)) * 0.5f;
+        draw_feedback_dots(dl, {dots_x, dots_y}, dot_r, dot_gap, rec.blacks, rec.whites, positions);
 
         // Turn number label
         ImGui::SetCursorScreenPos({cursor.x + row_w + 4.f, cursor.y + row_h * 0.35f});
@@ -157,10 +170,8 @@ static void render_board(AppState& state) {
     }
 
     // ── Current guess (if computed) ──────────────────────────────────────────
-    if (state.phase == SolvePhase::AwaitingFeedback ||
-        state.phase == SolvePhase::AutoPaused ||
+    if (state.phase == SolvePhase::AwaitingFeedback || state.phase == SolvePhase::AutoPaused ||
         state.phase == SolvePhase::AutoPlaying) {
-
         ImVec2 cursor = ImGui::GetCursorScreenPos();
         ImVec2 row_tl = cursor;
         ImVec2 row_br = {row_tl.x + row_w, row_tl.y + row_h};
@@ -170,18 +181,18 @@ static void render_board(AppState& state) {
         dl->AddRect(row_tl, row_br, IM_COL32(240, 200, 50, 80), 4.0f, 0, 1.5f);
 
         for (int p = 0; p < positions; ++p) {
-            uint8_t digit = static_cast<uint8_t>(
-                (state.pending_guess / state.cfg->pow_c[p]) % state.cfg->colors);
-            ImVec2 center = {
-                cursor.x + peg_gap + p * (peg_r * 2 + peg_gap) + peg_r,
-                cursor.y + row_h * 0.5f
-            };
+            uint8_t digit = static_cast<uint8_t>((state.pending_guess / state.cfg->pow_c[p]) %
+                                                 state.cfg->colors);
+            ImVec2 center = {cursor.x + peg_gap + p * (peg_r * 2 + peg_gap) + peg_r,
+                             cursor.y + row_h * 0.5f};
             draw_peg(dl, center, peg_r, peg_color(digit));
         }
 
         // Dots area: show empty placeholders
         float dots_x = cursor.x + peg_gap + positions * (peg_r * 2 + peg_gap) + peg_gap;
-        float dots_y = cursor.y + (row_h - ((int)std::ceil((double)positions / dot_cols)) * (dot_r * 2 + dot_gap)) * 0.5f;
+        float dots_y =
+            cursor.y +
+            (row_h - ((int)std::ceil((double)positions / dot_cols)) * (dot_r * 2 + dot_gap)) * 0.5f;
         draw_feedback_dots(dl, {dots_x, dots_y}, dot_r, dot_gap, 0, 0, positions);
 
         ImGui::Dummy(ImVec2(row_w + 24.f, row_h));
@@ -192,16 +203,15 @@ static void render_board(AppState& state) {
         ImGui::Separator();
         ImGui::TextUnformatted("Enter feedback for the guess above:");
         ImGui::PushItemWidth(120.f);
-        ImGui::SliderInt("Black pegs##fb",  &state.input_blacks, 0, positions);
+        ImGui::SliderInt("Black pegs##fb", &state.input_blacks, 0, positions);
         int max_whites = std::max(0, positions - state.input_blacks);
         state.input_whites = std::min(state.input_whites, max_whites);
-        ImGui::SliderInt("White pegs##fb",  &state.input_whites, 0, max_whites);
+        ImGui::SliderInt("White pegs##fb", &state.input_whites, 0, max_whites);
         ImGui::PopItemWidth();
 
         if (ImGui::Button("Submit Feedback", {-1, 0})) {
-            state.apply_feedback(
-                static_cast<uint8_t>(state.input_blacks),
-                static_cast<uint8_t>(state.input_whites));
+            state.apply_feedback(static_cast<uint8_t>(state.input_blacks),
+                                 static_cast<uint8_t>(state.input_whites));
             state.input_blacks = 0;
             state.input_whites = 0;
         }
@@ -217,11 +227,13 @@ static void render_board(AppState& state) {
         ImGui::TextUnformatted("Enter the secret code:");
         ImGui::PushItemWidth(55.f);
         for (int p = 0; p < positions; ++p) {
-            if (p > 0) ImGui::SameLine();
+            if (p > 0)
+                ImGui::SameLine();
             char lbl[16];
             snprintf(lbl, sizeof(lbl), "##s%d", p);
             ImGui::InputInt(lbl, &state.secret_input[p], 0, 0);
-            state.secret_input[p] = std::clamp(state.secret_input[p], 1, static_cast<int>(state.cfg->colors));
+            state.secret_input[p] =
+                std::clamp(state.secret_input[p], 1, static_cast<int>(state.cfg->colors));
         }
         ImGui::PopItemWidth();
 
@@ -251,13 +263,15 @@ static void render_board(AppState& state) {
     // ── Solved / Failed ───────────────────────────────────────────────────────
     if (state.phase == SolvePhase::Solved) {
         ImGui::Separator();
-        ImGui::TextColored({0.2f, 0.9f, 0.3f, 1.f},
-            "Solved in %d turns!", (int)state.history.size());
-        if (ImGui::Button("Play Again", {-1, 0})) state.reset();
+        ImGui::TextColored({0.2f, 0.9f, 0.3f, 1.f}, "Solved in %d turns!",
+                           (int)state.history.size());
+        if (ImGui::Button("Play Again", {-1, 0}))
+            state.reset();
     } else if (state.phase == SolvePhase::Failed) {
         ImGui::Separator();
         ImGui::TextColored({0.9f, 0.2f, 0.2f, 1.f}, "Failed to solve.");
-        if (ImGui::Button("Try Again", {-1, 0})) state.reset();
+        if (ImGui::Button("Try Again", {-1, 0}))
+            state.reset();
     }
 
     ImGui::PopStyleColor();
@@ -267,16 +281,17 @@ static void render_board(AppState& state) {
 // ── Charts panel ──────────────────────────────────────────────────────────────
 
 static void render_charts(AppState& state) {
-    if (!state.cfg) return;
+    if (!state.cfg)
+        return;
 
     ImVec2 avail = ImGui::GetContentRegionAvail();
     float chart_h = (avail.y - ImGui::GetStyle().ItemSpacing.y * 2) / 3.0f;
 
     // Build label arrays for bar charts
-    auto make_labels = [&](const std::vector<ScoredGuess>& scores,
-                           std::vector<std::string>& strs,
+    auto make_labels = [&](const std::vector<ScoredGuess>& scores, std::vector<std::string>& strs,
                            std::vector<const char*>& ptrs) {
-        strs.clear(); ptrs.clear();
+        strs.clear();
+        ptrs.clear();
         for (auto& [code, _] : scores) {
             strs.push_back(code_to_string(code, *state.cfg));
             ptrs.push_back(strs.back().c_str());
@@ -295,14 +310,12 @@ static void render_charts(AppState& state) {
             e_pos.push_back((double)i);
         }
 
-        if (ImPlot::BeginPlot("Entropy (bits) — top candidates",
-                              ImVec2(-1, chart_h))) {
-            ImPlot::SetupAxes("Guess", "H (bits)",
-                              ImPlotAxisFlags_NoGridLines,
+        if (ImPlot::BeginPlot("Entropy (bits) — top candidates", ImVec2(-1, chart_h))) {
+            ImPlot::SetupAxes("Guess", "H (bits)", ImPlotAxisFlags_NoGridLines,
                               ImPlotAxisFlags_AutoFit);
             if (!e_ptrs.empty()) {
-                ImPlot::SetupAxisTicks(ImAxis_X1, e_pos.data(),
-                                       (int)e_ptrs.size(), e_ptrs.data(), false);
+                ImPlot::SetupAxisTicks(ImAxis_X1, e_pos.data(), (int)e_ptrs.size(), e_ptrs.data(),
+                                       false);
             }
             ImPlot::SetupAxisLimits(ImAxis_X1, -0.5, std::max(1.0, (double)e_vals.size() - 0.5),
                                     ImGuiCond_Always);
@@ -314,7 +327,8 @@ static void render_charts(AppState& state) {
 
             // Highlight chosen guess
             if (!state.chart_entropy.empty()) {
-                auto it = std::find_if(state.chart_entropy.begin(), state.chart_entropy.end(),
+                auto it = std::find_if(
+                    state.chart_entropy.begin(), state.chart_entropy.end(),
                     [&](const ScoredGuess& sg) { return sg.first == state.pending_guess; });
                 if (it != state.chart_entropy.end()) {
                     int idx = (int)(it - state.chart_entropy.begin());
@@ -346,12 +360,11 @@ static void render_charts(AppState& state) {
 
         if (ImPlot::BeginPlot("Minimax (worst-case partition) — lower is better",
                               ImVec2(-1, chart_h))) {
-            ImPlot::SetupAxes("Guess", "Worst-case size",
-                              ImPlotAxisFlags_NoGridLines,
+            ImPlot::SetupAxes("Guess", "Worst-case size", ImPlotAxisFlags_NoGridLines,
                               ImPlotAxisFlags_AutoFit);
             if (!m_ptrs.empty()) {
-                ImPlot::SetupAxisTicks(ImAxis_X1, m_pos.data(),
-                                       (int)m_ptrs.size(), m_ptrs.data(), false);
+                ImPlot::SetupAxisTicks(ImAxis_X1, m_pos.data(), (int)m_ptrs.size(), m_ptrs.data(),
+                                       false);
             }
             ImPlot::SetupAxisLimits(ImAxis_X1, -0.5, std::max(1.0, (double)m_vals.size() - 0.5),
                                     ImGuiCond_Always);
@@ -363,7 +376,8 @@ static void render_charts(AppState& state) {
 
             // Highlight chosen guess
             if (!state.chart_minimax.empty()) {
-                auto it = std::find_if(state.chart_minimax.begin(), state.chart_minimax.end(),
+                auto it = std::find_if(
+                    state.chart_minimax.begin(), state.chart_minimax.end(),
                     [&](const ScoredGuess& sg) { return sg.first == state.pending_guess; });
                 if (it != state.chart_minimax.end()) {
                     int idx = (int)(it - state.chart_minimax.begin());
@@ -397,11 +411,8 @@ static void render_charts(AppState& state) {
             ys.push_back((double)state.candidates.size());
         }
 
-        if (ImPlot::BeginPlot("Candidates Remaining per Turn",
-                              ImVec2(-1, chart_h))) {
-            ImPlot::SetupAxes("Turn", "Candidates",
-                              ImPlotAxisFlags_None,
-                              ImPlotAxisFlags_AutoFit);
+        if (ImPlot::BeginPlot("Candidates Remaining per Turn", ImVec2(-1, chart_h))) {
+            ImPlot::SetupAxes("Turn", "Candidates", ImPlotAxisFlags_None, ImPlotAxisFlags_AutoFit);
             if (ys.size() > 1 && ys[0] > 10)
                 ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
 
@@ -413,7 +424,8 @@ static void render_charts(AppState& state) {
                 ImPlot::PlotLine("Candidates##line", xs.data(), ys.data(), (int)xs.size());
             ImPlot::PopStyleColor(2);
 
-            if (n == 0) ImPlot::PlotText("Start a game to see data", 0.5, 100);
+            if (n == 0)
+                ImPlot::PlotText("Start a game to see data", 0.5, 100);
             ImPlot::EndPlot();
         }
     }
@@ -445,9 +457,8 @@ void render_frame(AppState& state, double current_time_s) {
     ImGui::SetNextWindowPos({0.f, menu_h});
     ImGui::SetNextWindowSize({board_w, avail_h});
     ImGui::Begin("Game Board", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                 ImGuiWindowFlags_NoMove     | ImGuiWindowFlags_NoCollapse |
-                 ImGuiWindowFlags_NoBringToFrontOnFocus);
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
     render_board(state);
     ImGui::End();
 
@@ -455,8 +466,8 @@ void render_frame(AppState& state, double current_time_s) {
     ImGui::SetNextWindowPos({board_w, menu_h});
     ImGui::SetNextWindowSize({avail_w - board_w, avail_h});
     ImGui::Begin("Analysis", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                 ImGuiWindowFlags_NoMove     | ImGuiWindowFlags_NoCollapse);
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoCollapse);
     render_charts(state);
     ImGui::End();
 }
