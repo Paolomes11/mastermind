@@ -39,6 +39,7 @@ void AppState::reset() {
     feedback_error.clear();
     pending_guess = 0;
     last_auto_step_time = 0.0;
+    fail_reason = FailReason::None;
 
     if (mode == AppMode::Guided) {
         // Start computing immediately in guided mode
@@ -104,7 +105,7 @@ void AppState::poll_scoring(double current_time_s) {
 
 bool AppState::apply_feedback(uint8_t blacks, uint8_t whites) {
     feedback_error.clear();
-    int pos = cfg->positions;
+    int pos = static_cast<int>(cfg->positions);
 
     if (static_cast<int>(blacks) > pos) {
         feedback_error = "Blacks > positions";
@@ -118,11 +119,22 @@ bool AppState::apply_feedback(uint8_t blacks, uint8_t whites) {
         feedback_error = "Blacks + whites > positions";
         return false;
     }
+    // In standard Mastermind, (P-1) blacks + 1 white is impossible: with only one slot remaining,
+    // that peg is either correct (black) or absent — it cannot be right-color-wrong-position.
+    if (pos >= 2 && static_cast<int>(blacks) == pos - 1 && static_cast<int>(whites) == 1) {
+        feedback_error = std::to_string(pos - 1) + " black + 1 white is impossible in standard "
+                         "Mastermind (the last peg can't be right-color-wrong-position).";
+        return false;
+    }
 
     Feedback fb = pack_feedback(blacks, whites, *cfg);
 
+    // Save snapshot of candidates BEFORE filtering so this turn can be undone.
+    std::vector<Code> snapshot = candidates;
+
     candidates_per_turn.push_back(static_cast<int>(candidates.size()));
-    history.push_back({pending_guess, blacks, whites, static_cast<int>(candidates.size())});
+    history.push_back({pending_guess, blacks, whites, static_cast<int>(candidates.size()),
+                       std::move(snapshot)});
 
     Feedback win = winning_feedback(*cfg);
     if (fb == win) {
@@ -133,11 +145,44 @@ bool AppState::apply_feedback(uint8_t blacks, uint8_t whites) {
 
     candidates = filter_candidates(candidates, pending_guess, fb, *fb_table);
 
-    if (candidates.empty() || static_cast<int>(history.size()) >= 12) {
+    if (candidates.empty()) {
+        fail_reason = FailReason::EmptyCandidates;
+        phase = SolvePhase::Failed;
+        return true;
+    }
+    if (static_cast<int>(history.size()) >= 12) {
+        fail_reason = FailReason::MaxTurns;
         phase = SolvePhase::Failed;
         return true;
     }
 
+    launch_scoring();
+    return true;
+}
+
+// ── AppState::undo_last_turn ──────────────────────────────────────────────────
+
+bool AppState::undo_last_turn() {
+    if (history.empty() || computing)
+        return false;
+    // Sync any in-flight future first (shouldn't be running if history is non-empty
+    // and we're in AwaitingFeedback/Failed/Solved, but be safe).
+    if (score_future.valid())
+        score_future.get();
+    computing = false;
+
+    TurnRecord& last = history.back();
+    candidates = std::move(last.candidates_snapshot);
+    history.pop_back();
+    if (!candidates_per_turn.empty())
+        candidates_per_turn.pop_back();
+
+    feedback_error.clear();
+    fail_reason = FailReason::None;
+    chart_entropy.clear();
+    chart_minimax.clear();
+
+    // Re-launch scoring so the solver picks the same guess again.
     launch_scoring();
     return true;
 }

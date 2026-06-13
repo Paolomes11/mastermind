@@ -30,3 +30,7 @@ inline ImU32 to_u32(ImVec4 c) {
 inline ImVec4 peg_color(uint8_t digit) {
     return PEG_COLORS[digit % 8];
 }
+
+inline ImVec4 peg_color_mapped(uint8_t digit, const int perm[8]) {
+    return PEG_COLORS[perm[digit % 8]];
+}

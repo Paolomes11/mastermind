@@ -26,11 +26,18 @@ enum class SolvePhase {
     Failed             // Could not solve within max turns
 };
 
+enum class FailReason {
+    None,
+    EmptyCandidates,  // feedback was inconsistent; no valid code remains
+    MaxTurns,         // hit the turn limit without solving
+};
+
 struct TurnRecord {
     Code guess;
     uint8_t blacks;
     uint8_t whites;
-    int candidates_before;  // number of candidates when this guess was chosen
+    int candidates_before;          // number of candidates when this guess was chosen
+    std::vector<Code> candidates_snapshot;  // candidates list before this turn (for undo)
 };
 
 struct ScoringResult {
@@ -46,8 +53,12 @@ struct AppState {
     int strategy_idx = 0;  // 0=entropy, 1=minimax, 2=random
     static constexpr const char* kStrategyNames[] = {"entropy", "minimax", "random"};
 
+    // Mapping: digit d → PEG_COLORS index (allows rearranging which color appears at each slot)
+    int color_perm[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+
     AppMode mode = AppMode::Guided;
     SolvePhase phase = SolvePhase::Idle;
+    FailReason fail_reason = FailReason::None;
 
     // ── Core objects (rebuilt on Reset) ──────────────────────────────────────
     std::unique_ptr<GameConfig> cfg;
@@ -99,6 +110,9 @@ struct AppState {
     // Apply feedback (blacks, whites) to the pending_guess.
     // Returns false and sets feedback_error if the input is invalid.
     bool apply_feedback(uint8_t blacks, uint8_t whites);
+
+    // Undo the last submitted turn. Returns false if nothing to undo.
+    bool undo_last_turn();
 
     // Advance one step in AutoSolve mode (compute feedback from secret).
     void step_auto_solve(double current_time_s);

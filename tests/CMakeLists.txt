@@ -13,7 +13,10 @@ add_executable(mastermind_tests
     test_code.cpp
     test_feedback.cpp
     test_solver.cpp
+    test_app_state.cpp
+    ${CMAKE_SOURCE_DIR}/gui/app_state.cpp
 )
+target_include_directories(mastermind_tests PRIVATE ${CMAKE_SOURCE_DIR}/gui)
 target_link_libraries(mastermind_tests PRIVATE mastermind_core doctest::doctest)
 
 add_test(NAME mastermind_tests COMMAND mastermind_tests)

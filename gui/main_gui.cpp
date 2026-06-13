@@ -43,7 +43,7 @@ static float compute_scale(int w, int h) {
 static void apply_scale(float scale, const ImGuiStyle& base_style) {
     ImGui::GetStyle() = base_style;
     ImGui::GetStyle().ScaleAllSizes(scale);
-    rebuild_fonts(std::round(16.0f * scale));
+    rebuild_fonts(std::round(22.0f * scale));
 }
 
 static void do_toggle_fullscreen(SDL_Window* win, AppState& state, const ImGuiStyle& base_style) {
@@ -51,7 +51,7 @@ static void do_toggle_fullscreen(SDL_Window* win, AppState& state, const ImGuiSt
     SDL_SetWindowFullscreen(win, currently_full ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
     state.is_fullscreen = !currently_full;
     int w, h;
-    SDL_GetWindowSize(win, &w, &h);
+    SDL_GL_GetDrawableSize(win, &w, &h);
     apply_scale(compute_scale(w, h), base_style);
 }
 
@@ -135,8 +135,8 @@ int main(int, char**) {
                     event.window.windowID == SDL_GetWindowID(window)) {
                     quit = true;
                 } else if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-                    int w = event.window.data1;
-                    int h = event.window.data2;
+                    int w, h;
+                    SDL_GL_GetDrawableSize(window, &w, &h);
                     apply_scale(compute_scale(w, h), base_style);
                 }
             } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_F11) {
